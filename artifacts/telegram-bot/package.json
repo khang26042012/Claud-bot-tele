@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js"

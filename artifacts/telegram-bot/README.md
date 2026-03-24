@@ -29,23 +29,36 @@ Telegram → node-telegram-bot-api → Express server → Puppeteer (headless Ch
 
 ## Deploying to Railway
 
-1. Create a new Railway project and connect this repo
-2. Set the environment variable `TELEGRAM_TOKEN` to your bot token from @BotFather
-3. Railway will auto-detect the `Procfile` and run `node artifacts/telegram-bot/index.js`
-4. The bot needs enough RAM for Chromium — Railway's Starter plan (512MB) should work, Hobby (1GB+) is recommended
+### Step 1 — Create Railway project
 
-### Required Environment Variables
+1. Go to [railway.app](https://railway.app) and create a new project
+2. Connect your GitHub repo
+3. In the Railway project settings, set **Root Directory** to: `artifacts/telegram-bot`
+   - This is important — Railway needs to build from the bot's subfolder, not the monorepo root
 
-| Variable | Description |
-|----------|-------------|
-| `TELEGRAM_TOKEN` | Your Telegram bot token from @BotFather |
-| `PORT` | Port to listen on (Railway sets this automatically) |
+### Step 2 — Set environment variables
 
-### Procfile
+In Railway → your service → **Variables**, add:
 
-```
-web: node artifacts/telegram-bot/index.js
-```
+| Variable | Value |
+|----------|-------|
+| `TELEGRAM_TOKEN` | Your bot token from @BotFather |
+| `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD` | `false` |
+| `PUPPETEER_CACHE_DIR` | `/app/.cache/puppeteer` |
+
+### Step 3 — Deploy
+
+Railway will automatically:
+- Detect Node.js
+- Install system libraries for Chrome (via `nixpacks.toml`)
+- Run `npm install` (which downloads Puppeteer's bundled Chrome)
+- Start the bot with `node index.js`
+
+### Memory recommendation
+
+Chromium needs RAM to run. Railway plans:
+- **Starter (512MB)**: May work but tight
+- **Hobby (1GB)**: Recommended minimum
 
 ## Running Locally
 
@@ -55,8 +68,10 @@ npm install
 TELEGRAM_TOKEN=your_token_here node index.js
 ```
 
-## Notes
+## How it works
 
-- Puter.js is loaded inside the headless browser — no Puter API key required
-- The browser is kept alive and reused across all requests for performance
-- Railway has Chromium dependencies pre-installed, but if you see errors add these to your Railway env: `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=false`
+1. Express serves a local `puter-bridge.html` page on startup
+2. Puppeteer launches headless Chrome and loads that page
+3. The page loads `https://js.puter.com/v2/` and exposes `window.askAI(prompt, history)`
+4. When a Telegram message arrives, the server calls `page.evaluate(() => window.askAI(...))` and returns Claude's response
+5. The browser stays alive between requests — no relaunch overhead per message
