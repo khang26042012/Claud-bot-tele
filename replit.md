@@ -1,5 +1,37 @@
 # Workspace
 
+## Telegram Bot
+
+A Telegram bot powered by Claude claude-opus-4-6 via Puter.js running inside a headless Puppeteer browser.
+
+### Location: `artifacts/telegram-bot/`
+
+- **Entry**: `index.js` — Express server + Telegram polling + Puppeteer controller
+- **HTML bridge**: `public/puter-bridge.html` — loaded by Puppeteer, exposes `window.askAI(prompt, history)`
+- **Workflow**: "Telegram Bot" — `pnpm --filter @workspace/telegram-bot run dev`
+- **Dependencies**: `express`, `node-telegram-bot-api`, `puppeteer`
+- **System deps**: glib, nss, nspr, atk, mesa, gtk3, libxkbcommon, alsa-lib, dbus, expat, xorg.*, pango, cairo, cups, libdrm (installed via Nix for Chromium)
+
+### Architecture
+```
+Telegram → node-telegram-bot-api → Express → Puppeteer (headless Chrome) → Puter.js → Claude claude-opus-4-6
+```
+
+### Key Details
+- LD_LIBRARY_PATH is computed dynamically at startup from $PATH nix store entries
+- Browser launched once at startup, reused for all requests
+- Per-user conversation history (max 20 messages)
+- Commands: /start, /help, /clear, /think (toggle thinking spoiler)
+- Long messages auto-split at 4096 char Telegram limit
+- Retry logic: 1 automatic retry on failure
+
+### Railway Deployment
+- Procfile at repo root: `web: node artifacts/telegram-bot/index.js`
+- Set `TELEGRAM_TOKEN` environment variable
+- Needs enough RAM for Chromium (512MB min, 1GB recommended)
+
+
+
 ## Overview
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.

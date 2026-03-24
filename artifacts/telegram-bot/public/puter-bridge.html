@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Puter AI Bridge</title>
+  <script src="https://js.puter.com/v2/"></script>
+</head>
+<body>
+  <div id="status">Initializing Puter...</div>
+  <script>
+    window.__puterReady = false;
+    window.__puterError = null;
+
+    function waitForPuter(resolve, reject, attempts) {
+      attempts = attempts || 0;
+      if (attempts > 60) {
+        window.__puterError = 'Puter failed to initialize after 30 seconds';
+        reject(window.__puterError);
+        return;
+      }
+      if (typeof puter !== 'undefined' && puter.ai && typeof puter.ai.chat === 'function') {
+        window.__puterReady = true;
+        document.getElementById('status').textContent = 'Puter ready!';
+        resolve();
+      } else {
+        setTimeout(() => waitForPuter(resolve, reject, attempts + 1), 500);
+      }
+    }
+
+    const puterInitPromise = new Promise((resolve, reject) => {
+      waitForPuter(resolve, reject, 0);
+    });
+
+    window.askAI = async function(prompt, history) {
+      await puterInitPromise;
+
+      const messages = [];
+
+      if (history && Array.isArray(history)) {
+        for (const msg of history) {
+          messages.push({ role: msg.role, content: msg.content });
+        }
+      }
+
+      messages.push({ role: 'user', content: prompt });
+
+      const response = await puter.ai.chat(messages, {
+        model: 'claude-opus-4-6',
+        stream: false,
+        thinking: {
+          type: 'enabled',
+          budget_tokens: 16000
+        },
+        max_tokens: 32000
+      });
+
+      let thinkingText = '';
+      let answerText = '';
+
+      const content = response && response.message && response.message.content
+        ? response.message.content
+        : (Array.isArray(response) ? response : []);
+
+      if (Array.isArray(content)) {
+        for (const block of content) {
+          if (block.type === 'thinking') {
+            thinkingText += block.thinking || '';
+          } else if (block.type === 'text') {
+            answerText += block.text || '';
+          }
+        }
+      } else if (typeof response === 'string') {
+        answerText = response;
+      } else if (response && response.text) {
+        answerText = response.text;
+      }
+
+      return { answer: answerText, thinking: thinkingText };
+    };
+
+    window.isPuterReady = function() {
+      return window.__puterReady;
+    };
+
+    window.getPuterError = function() {
+      return window.__puterError;
+    };
+  </script>
+</body>
+</html>
