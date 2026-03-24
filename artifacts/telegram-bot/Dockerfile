@@ -1,6 +1,6 @@
 FROM node:20-slim
 
-# Install Chrome dependencies for Puppeteer on Debian Bookworm (node:20-slim base)
+# Install system libraries required by Puppeteer's bundled Chromium
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     fonts-liberation \
@@ -33,15 +33,16 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# These env vars must be set BEFORE npm install so Puppeteer
-# downloads its bundled Chrome during the install step
+# Set before npm install so Puppeteer downloads its bundled Chrome
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=false
 ENV PUPPETEER_CACHE_DIR=/app/.cache/puppeteer
 ENV NODE_ENV=production
 
-COPY package.json ./
+# Build context is the repo root — copy from the telegram-bot subdirectory
+COPY artifacts/telegram-bot/package.json ./
 RUN npm install
 
-COPY . .
+COPY artifacts/telegram-bot/index.js ./
+COPY artifacts/telegram-bot/public ./public/
 
 CMD ["node", "index.js"]

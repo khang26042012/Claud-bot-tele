@@ -33,8 +33,8 @@ Telegram → node-telegram-bot-api → Express server → Puppeteer (headless Ch
 
 1. Go to [railway.app](https://railway.app) and create a new project
 2. Connect your GitHub repo
-3. In the Railway project settings, set **Root Directory** to: `artifacts/telegram-bot`
-   - This is important — Railway needs to build from the bot's subfolder, not the monorepo root
+3. **Do NOT set a Root Directory** — leave it as the repo root
+   - Railway will find `railway.json` at the root which points to `artifacts/telegram-bot/Dockerfile`
 
 ### Step 2 — Set environment variables
 
@@ -43,20 +43,20 @@ In Railway → your service → **Variables**, add:
 | Variable | Value |
 |----------|-------|
 | `TELEGRAM_TOKEN` | Your bot token from @BotFather |
-| `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD` | `false` |
-| `PUPPETEER_CACHE_DIR` | `/app/.cache/puppeteer` |
+
+(Puppeteer env vars are already baked into the Dockerfile)
 
 ### Step 3 — Deploy
 
-Railway will automatically:
-- Detect Node.js
-- Install system libraries for Chrome (via `nixpacks.toml`)
-- Run `npm install` (which downloads Puppeteer's bundled Chrome)
-- Start the bot with `node index.js`
+Railway will:
+1. Detect `railway.json` at the root → use Dockerfile builder
+2. Build `artifacts/telegram-bot/Dockerfile` with the repo root as context
+3. `npm install` downloads Puppeteer's bundled Chrome automatically
+4. Start the bot with `node index.js`
 
 ### Memory recommendation
 
-Chromium needs RAM to run. Railway plans:
+Chromium needs RAM. Railway plans:
 - **Starter (512MB)**: May work but tight
 - **Hobby (1GB)**: Recommended minimum
 
